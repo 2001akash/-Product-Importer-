@@ -20,28 +20,39 @@
     <progress id="progress" class="progress" value="0" max="100"></progress>
   </div>
   <script>
-    const uploadBtn = document.getElementById('uploadBtn');
-    const fileInput = document.getElementById('file');
-    const messages = document.getElementById('messages');
-    const progress = document.getElementById('progress');
+const API_URL = "http://localhost:8000";
 
-    uploadBtn.addEventListener('click', async () => {
-      const file = fileInput.files[0];
-      if (!file) return alert('Select a CSV file');
-      const form = new FormData();
-      form.append('file', file);
-      const resp = await fetch('/upload', { method: 'POST', body: form });
-      const data = await resp.json();
-      const jobId = data.job_id;
-      messages.innerText = 'Job queued: ' + jobId;
-      const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
-      const ws = new WebSocket(`${wsProto}://${location.host}/ws/jobs/${jobId}`);
-      ws.onmessage = (ev) => {
-        const payload = JSON.parse(ev.data);
-        messages.innerText = JSON.stringify(payload);
-        if (payload.percent) progress.value = payload.percent;
-      };
-    });
-  </script>
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('file');
+const messages = document.getElementById('messages');
+const progress = document.getElementById('progress');
+
+uploadBtn.addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  if (!file) return alert('Select a CSV file');
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const resp = await fetch(`${API_URL}/upload`, {
+    method: 'POST',
+    body: form
+  });
+
+  const data = await resp.json();
+  const jobId = data.job_id;
+
+  messages.innerText = 'Job queued: ' + jobId;
+
+  const ws = new WebSocket(`ws://localhost:8000/ws/jobs/${jobId}`);
+
+  ws.onmessage = (ev) => {
+    const payload = JSON.parse(ev.data);
+    messages.innerText = JSON.stringify(payload);
+    if (payload.percent) progress.value = payload.percent;
+  };
+});
+</script>
+
 </body>
 </html>

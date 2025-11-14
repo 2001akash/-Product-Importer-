@@ -6,7 +6,7 @@ psycopg2-binary
 databases
 pydantic
 redis
-aioredis
 python-dotenv
 celery[redis]
 requests
+python-multipart
