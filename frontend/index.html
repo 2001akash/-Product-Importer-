@@ -2,153 +2,277 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Acme Product Importer - Demo</title>
+  <title>Acme Product Importer</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      font-family: system-ui, Arial; 
-      max-width: 900px; 
-      margin: 40px auto; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
     }
-    .progress { 
-      width: 100%; 
-      height: 30px;
-      margin-top: 10px;
-    }
-    .card { 
-      padding: 20px; 
-      border: 1px solid #eee; 
-      border-radius: 8px; 
-      margin-bottom: 12px; 
-      background: #f9f9f9;
-    }
-    .danger { color: #b00; }
-    .success { color: #0a0; }
-    #messages {
-      margin-top: 15px;
-      padding: 15px;
-      border-radius: 5px;
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
       background: white;
-      border: 1px solid #ddd;
-      min-height: 50px;
-      font-family: monospace;
-      white-space: pre-wrap;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    h1 { font-size: 32px; margin-bottom: 10px; }
+    .subtitle { opacity: 0.9; }
+    .content { padding: 40px; }
+    .upload-area {
+      border: 2px dashed #667eea;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      background: #f8f9ff;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 20px;
+    }
+    .upload-area:hover { background: #f0f1ff; border-color: #764ba2; }
+    .upload-area.drag-over { background: #e8e9ff; border-color: #764ba2; }
+    input[type="file"] { display: none; }
+    .file-info {
+      padding: 15px;
+      background: #e8e9ff;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: none;
+    }
+    .file-info.show { display: block; }
     button {
-      padding: 10px 20px;
-      background: #007bff;
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      border-radius: 8px;
       font-size: 16px;
-      margin-left: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
     }
-    button:hover {
-      background: #0056b3;
+    button:hover:not(:disabled) { transform: translateY(-2px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .progress-container {
+      margin-top: 20px;
+      display: none;
     }
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
+    .progress-container.show { display: block; }
+    .progress-bar-bg {
+      width: 100%;
+      height: 30px;
+      background: #e0e0e0;
+      border-radius: 15px;
+      overflow: hidden;
+      position: relative;
     }
-    input[type="file"] {
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
     }
+    .progress-text {
+      margin-top: 10px;
+      color: #666;
+      text-align: center;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
   </style>
 </head>
 <body>
-  <h1>🚀 Acme Product Importer — Demo UI</h1>
-  
-  <div class="card">
-    <h3>📤 Upload CSV File</h3>
-    <input id="file" type="file" accept=".csv" />
-    <button id="uploadBtn">Upload & Process</button>
+  <div class="container">
+    <div class="header">
+      <h1>📦 Acme Product Importer</h1>
+      <p class="subtitle">Upload and manage your product catalog</p>
+      <div style="margin-top: 15px;">
+        <a href="products.html" style="color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px; display: inline-block;">
+          View Products →
+        </a>
+      </div>
+    </div>
     
-    <div id="messages">Select a CSV file and click Upload...</div>
-    <progress id="progress" class="progress" value="0" max="100" style="display:none;"></progress>
+    <div class="content">
+      <div class="upload-area" id="uploadArea">
+        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+        <p><strong>Click to browse</strong> or drag and drop</p>
+        <p style="font-size: 14px; color: #999; margin-top: 5px;">CSV files only • Up to 500,000 products</p>
+        <input type="file" id="fileInput" accept=".csv" />
+      </div>
+
+      <div class="file-info" id="fileInfo">
+        <strong>Selected:</strong> <span id="fileName"></span>
+      </div>
+
+      <button id="uploadBtn" disabled>Upload & Process</button>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar-bg">
+          <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        <div class="progress-text" id="progressText">Preparing...</div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
   </div>
 
   <script>
-const API_URL = "http://localhost:8000";
+    const API_URL = "http://localhost:8000";
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const status = document.getElementById('status');
 
-const uploadBtn = document.getElementById('uploadBtn');
-const fileInput = document.getElementById('file');
-const messages = document.getElementById('messages');
-const progress = document.getElementById('progress');
+    let selectedFile = null;
 
-uploadBtn.addEventListener('click', async () => {
-  const file = fileInput.files[0];
-  if (!file) {
-    messages.innerHTML = '<span class="danger">⚠️ Please select a CSV file</span>';
-    return;
-  }
-
-  if (!file.name.endsWith('.csv')) {
-    messages.innerHTML = '<span class="danger">⚠️ Only CSV files are allowed</span>';
-    return;
-  }
-
-  // Disable button during upload
-  uploadBtn.disabled = true;
-  messages.innerHTML = '⏳ Uploading file...';
-  progress.style.display = 'block';
-  progress.value = 50;
-
-  try {
-    const form = new FormData();
-    form.append('file', file);
-
-    const resp = await fetch(`${API_URL}/upload`, {
-      method: 'POST',
-      body: form
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+      handleFile(e.target.files[0]);
     });
 
-    if (!resp.ok) {
-      const error = await resp.json();
-      throw new Error(error.detail || 'Upload failed');
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!file.name.endsWith('.csv')) {
+        showStatus('error', '❌ Please select a CSV file');
+        return;
+      }
+      selectedFile = file;
+      fileName.textContent = file.name;
+      fileInfo.classList.add('show');
+      uploadBtn.disabled = false;
+      status.classList.remove('show');
+      progressContainer.classList.remove('show');
     }
 
-    const data = await resp.json();
-    const jobId = data.job_id || data.task_id;
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
 
-    progress.value = 100;
-    
-    messages.innerHTML = `
-<span class="success">✅ Upload successful!</span>
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-<strong>Job ID:</strong> ${jobId}
-<strong>Filename:</strong> ${data.filename}
-<strong>Status:</strong> ${data.status}
+      uploadBtn.disabled = true;
+      progressContainer.classList.add('show');
+      status.classList.remove('show');
+      
+      updateProgress(0, 'Uploading file...');
 
-The file is being processed in the background.
-Check Docker logs to see progress:
-  docker-compose logs -f worker
-    `;
+      try {
+        const response = await fetch(`${API_URL}/upload`, {
+          method: 'POST',
+          body: formData
+        });
 
-    // Reset after 3 seconds
-    setTimeout(() => {
-      fileInput.value = '';
-      uploadBtn.disabled = false;
-      progress.style.display = 'none';
-      progress.value = 0;
-    }, 3000);
+        const result = await response.json();
 
-  } catch (error) {
-    progress.style.display = 'none';
-    messages.innerHTML = `<span class="danger">❌ Error: ${error.message}</span>`;
-    uploadBtn.disabled = false;
-  }
-});
+        if (response.ok) {
+          const jobId = result.job_id;
+          watchProgress(jobId);
+        } else {
+          showStatus('error', `❌ Upload failed: ${result.detail}`);
+          uploadBtn.disabled = false;
+          progressContainer.classList.remove('show');
+        }
+      } catch (error) {
+        showStatus('error', `❌ Network error: ${error.message}`);
+        uploadBtn.disabled = false;
+        progressContainer.classList.remove('show');
+      }
+    });
 
-// Show file name when selected
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files[0]) {
-    messages.innerHTML = `📄 Selected: <strong>${e.target.files[0].name}</strong>`;
-  }
-});
-</script>
+    function watchProgress(jobId) {
+      const eventSource = new EventSource(`${API_URL}/upload/progress/${jobId}`);
 
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.status === 'processing') {
+          const current = data.current?.toLocaleString() || '0';
+          const total = data.total?.toLocaleString() || '0';
+          const message = data.message || 'Processing...';
+          updateProgress(data.progress, `${message} (${current}/${total})`);
+        } else if (data.status === 'completed') {
+          updateProgress(100, 'Complete!');
+          const rows = data.result.rows_processed?.toLocaleString() || '0';
+          showStatus('success', `✅ Success! Processed ${rows} products`);
+          eventSource.close();
+          
+          setTimeout(() => {
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            selectedFile = null;
+            uploadBtn.disabled = true;
+            progressContainer.classList.remove('show');
+          }, 3000);
+        } else if (data.status === 'failed') {
+          showStatus('error', `❌ Error: ${data.error}`);
+          eventSource.close();
+          uploadBtn.disabled = false;
+          progressContainer.classList.remove('show');
+        }
+      };
+
+      eventSource.onerror = () => {
+        showStatus('error', '❌ Connection lost. Please refresh and try again.');
+        eventSource.close();
+        uploadBtn.disabled = false;
+        progressContainer.classList.remove('show');
+      };
+    }
+
+    function updateProgress(percent, text) {
+      progressBar.style.width = percent + '%';
+      progressBar.textContent = Math.round(percent) + '%';
+      progressText.textContent = text;
+    }
+
+    function showStatus(type, message) {
+      status.className = `status ${type} show`;
+      status.textContent = message;
+    }
+  </script>
 </body>
 </html>

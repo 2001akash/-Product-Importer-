@@ -56,38 +56,61 @@ def process_csv_task(self, file_path: str):
             meta={'progress': 10, 'current': 0, 'total': total_rows, 'message': f'Validating data...'}
         )
         
-        # Process CSV
+        # Process CSV and de-duplicate by SKU (case-insensitive)
         with open(file_path, 'r', encoding='utf-8') as input_file:
             reader = csv.DictReader(input_file)
             
-            output = StringIO()
-            writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(usable_columns)
-            
+            # De-duplicate: keep last occurrence of each SKU
+            seen_skus = {}
             row_num = 0
+            
             for row in reader:
                 row_num += 1
                 try:
-                    values = [row.get(col, '') for col in usable_columns]
-                    writer.writerow(values)
+                    sku = row.get('sku', '').strip()
+                    if sku:
+                        sku_lower = sku.lower()
+                        # Store row data with lowercase SKU as key (last one wins)
+                        seen_skus[sku_lower] = [row.get(col, '') for col in usable_columns]
                     
                     # Update progress every 10,000 rows
                     if row_num % 10000 == 0:
-                        progress = 10 + int((row_num / total_rows) * 70)  # 10-80%
+                        progress = 10 + int((row_num / total_rows) * 50)  # 10-60%
                         self.update_state(
                             state='PROGRESS',
                             meta={
                                 'progress': progress,
                                 'current': row_num,
                                 'total': total_rows,
-                                'message': f'Processing row {row_num:,} of {total_rows:,}...'
+                                'message': f'De-duplicating row {row_num:,} of {total_rows:,}...'
                             }
                         )
                 except Exception as e:
                     print(f"Warning: Skipping row {row_num}: {e}")
                     continue
-            
-            output.seek(0)
+        
+        # Write de-duplicated data to output
+        output = StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(usable_columns)
+        
+        for values in seen_skus.values():
+            writer.writerow(values)
+        
+        unique_count = len(seen_skus)
+        duplicates_removed = row_num - unique_count
+        
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'progress': 65,
+                'current': unique_count,
+                'total': total_rows,
+                'message': f'Removed {duplicates_removed:,} duplicates. Processing {unique_count:,} unique products...'
+            }
+        )
+        
+        output.seek(0)
         
         self.update_state(
             state='PROGRESS',
