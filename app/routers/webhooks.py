@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from .. import crud, schemas
-from tasks.process_csv import trigger_webhook_test
+from tasks.process_csv import process_csv_task
 
 router = APIRouter(prefix='/webhooks')
 

@@ -4,21 +4,72 @@
   <meta charset="utf-8" />
   <title>Acme Product Importer - Demo</title>
   <style>
-    body { font-family: system-ui, Arial; max-width: 900px; margin: 40px auto; }
-    .progress { width: 100%; }
-    .card { padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; }
+    body { 
+      font-family: system-ui, Arial; 
+      max-width: 900px; 
+      margin: 40px auto; 
+      padding: 20px;
+    }
+    .progress { 
+      width: 100%; 
+      height: 30px;
+      margin-top: 10px;
+    }
+    .card { 
+      padding: 20px; 
+      border: 1px solid #eee; 
+      border-radius: 8px; 
+      margin-bottom: 12px; 
+      background: #f9f9f9;
+    }
     .danger { color: #b00; }
+    .success { color: #0a0; }
+    #messages {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 5px;
+      background: white;
+      border: 1px solid #ddd;
+      min-height: 50px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Acme Product Importer — Demo UI</h1>
+  <h1>🚀 Acme Product Importer — Demo UI</h1>
+  
   <div class="card">
-    <h3>Upload CSV</h3>
+    <h3>📤 Upload CSV File</h3>
     <input id="file" type="file" accept=".csv" />
-    <button id="uploadBtn">Upload</button>
-    <div id="messages"></div>
-    <progress id="progress" class="progress" value="0" max="100"></progress>
+    <button id="uploadBtn">Upload & Process</button>
+    
+    <div id="messages">Select a CSV file and click Upload...</div>
+    <progress id="progress" class="progress" value="0" max="100" style="display:none;"></progress>
   </div>
+
   <script>
 const API_URL = "http://localhost:8000";
 
@@ -29,28 +80,73 @@ const progress = document.getElementById('progress');
 
 uploadBtn.addEventListener('click', async () => {
   const file = fileInput.files[0];
-  if (!file) return alert('Select a CSV file');
+  if (!file) {
+    messages.innerHTML = '<span class="danger">⚠️ Please select a CSV file</span>';
+    return;
+  }
 
-  const form = new FormData();
-  form.append('file', file);
+  if (!file.name.endsWith('.csv')) {
+    messages.innerHTML = '<span class="danger">⚠️ Only CSV files are allowed</span>';
+    return;
+  }
 
-  const resp = await fetch(`${API_URL}/upload`, {
-    method: 'POST',
-    body: form
-  });
+  // Disable button during upload
+  uploadBtn.disabled = true;
+  messages.innerHTML = '⏳ Uploading file...';
+  progress.style.display = 'block';
+  progress.value = 50;
 
-  const data = await resp.json();
-  const jobId = data.job_id;
+  try {
+    const form = new FormData();
+    form.append('file', file);
 
-  messages.innerText = 'Job queued: ' + jobId;
+    const resp = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      body: form
+    });
 
-  const ws = new WebSocket(`ws://localhost:8000/ws/jobs/${jobId}`);
+    if (!resp.ok) {
+      const error = await resp.json();
+      throw new Error(error.detail || 'Upload failed');
+    }
 
-  ws.onmessage = (ev) => {
-    const payload = JSON.parse(ev.data);
-    messages.innerText = JSON.stringify(payload);
-    if (payload.percent) progress.value = payload.percent;
-  };
+    const data = await resp.json();
+    const jobId = data.job_id || data.task_id;
+
+    progress.value = 100;
+    
+    messages.innerHTML = `
+<span class="success">✅ Upload successful!</span>
+
+<strong>Job ID:</strong> ${jobId}
+<strong>Filename:</strong> ${data.filename}
+<strong>Status:</strong> ${data.status}
+
+The file is being processed in the background.
+Check Docker logs to see progress:
+  docker-compose logs -f worker
+    `;
+
+    // Reset after 3 seconds
+    setTimeout(() => {
+      fileInput.value = '';
+      uploadBtn.disabled = false;
+      progress.style.display = 'none';
+      progress.value = 0;
+    }, 3000);
+
+  } catch (error) {
+    progress.style.display = 'none';
+    messages.innerHTML = `<span class="danger">❌ Error: ${error.message}</span>`;
+    uploadBtn.disabled = false;
+  }
+});
+
+// Show file name when selected
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) {
+    messages.innerHTML = `📄 Selected: <strong>${e.target.files[0].name}</strong>`;
+  }
 });
 </script>
 
