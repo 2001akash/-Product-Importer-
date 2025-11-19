@@ -267,26 +267,6 @@ name,sku,description,price,category,stock_quantity
 4. Test CRUD operations
 5. Configure and test webhooks
 
-### Load Testing
-```bash
-# Generate large CSV
-python -c "
-import csv
-with open('test.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['name', 'sku', 'description'])
-    for i in range(500000):
-        writer.writerow([f'Product {i}', f'SKU-{i}', f'Description {i}'])
-"
-```
-
-## 📄 License
-
-MIT License
-
-## 👤 Author
-
-[Your Name]
 
 ## 🙏 Acknowledgments
 
