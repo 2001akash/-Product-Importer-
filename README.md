@@ -84,6 +84,8 @@ git clone <your-repo-url>
 cd product-importer
 
 # Start all services
+docker down
+docker-compose build
 docker-compose up -d
 
 # View logs
