@@ -11,7 +11,6 @@ COPY . .
 
 ENV PYTHONPATH=/app
 
-RUN mkdir -p /tmp/uploads
 RUN chmod +x start.sh
 
 CMD ["./start.sh"]
