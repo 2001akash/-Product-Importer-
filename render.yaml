@@ -1,16 +1,69 @@
 services:
-  # The Web Service (FastAPI only)
+  # Service 1: FastAPI (The Web Service)
   - type: web
     name: acme-web
     env: docker
     plan: free
+    # This uses start.sh OR you can override the command here to just run uvicorn
     dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    # ... env vars ...
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: acme-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
 
-  # The Background Worker (Celery only)
-  - type: worker
+  # Service 2: Celery (The Background Worker)
+  - type: worker   # <--- CRITICAL CHANGE: Must be 'worker', not 'web'
     name: acme-worker
     env: docker
-    plan: free
+    plan: free     # Note: Free plan allows separate workers, but watch your memory usage!
+    # We override the command to run ONLY celery, not the start.sh script
     dockerCommand: celery -A tasks.celery_app.celery worker --loglevel=info
-    # ... env vars ...
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: acme-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: acme-redis
+          property: connectionString
+
+databases:
+  - name: acme-db
+    plan: free
+    databaseName: acme_db
+    user: acme_user
+
+services:
+  - type: redis
+    name: acme-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
